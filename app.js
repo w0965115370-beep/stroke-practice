@@ -53,7 +53,8 @@ function parseCSV(text) {
   }
   lastOf(rows).push(f);
   const head = rows.shift().map(h => h.trim().replace(/^﻿/, ""));
-  return rows.filter(r => r.some(x => x.trim())).map(r => Object.fromEntries(head.map((h, i) => [h, (r[i] || "").trim()])));
+  // plain loop instead of Object.fromEntries (iOS 12.2+) so older iPads can read the word list
+  return rows.filter(r => r.some(x => x.trim())).map(r => { const o = {}; head.forEach((h, i) => { o[h] = (r[i] || "").trim(); }); return o; });
 }
 
 async function fetchCSV(url) {
@@ -527,4 +528,10 @@ async function loadData({ fresh = false } = {}) {
 takeRosterFromLink();
 loadData()
   .then(() => { window.addEventListener("hashchange", route); route(); })
-  .catch(err => { $app.innerHTML = `<p class="note">讀不到字表，請確認網路連線後重新整理。<br>(${esc(err.message)})</p>`; });
+  .catch(err => {
+    // show enough detail to tell a network problem from an old browser
+    const ios = (navigator.userAgent.match(/OS (\d+)_(\d+)/) || []).slice(1).join(".");
+    $app.innerHTML = `<p class="note">讀不到字表，請確認網路連線後按「重新載入」。<br>
+      <button class="btn primary" style="margin:16px auto;display:flex" onclick="location.reload()">重新載入</button>
+      <small>${esc(err && err.message || err)}${ios ? `　iOS ${esc(ios)}` : ""}　版本 ${esc((document.querySelector('script[src^="app.js"]') || {}).src.split("v=")[1] || "")}</small></p>`;
+  });
