@@ -25,13 +25,13 @@ GitHub Pages（這個 repo）              Google 試算表 + Apps Script（班�
    2. 「擴充功能 → Apps Script」→ 貼上 `apps-script/Code.gs` 全部內容 → 存檔。
    3. 「部署 → 新增部署作業」→ 齒輪選「網頁應用程式」→ 執行身分「我」、誰可以存取「所有人」→ 部署 → 授權。
    4. 複製「網頁應用程式」網址。
-3. **連接**：打開網站 → 右上角「老師」→ 貼上網址 → 設定老師密碼。
+3. **連接**：打開網站 → 右上角「老師後台」→ 貼上網址 → 設定老師密碼。
 4. 後台「生字」可匯入康軒一年級字表；「學生名單」可整份貼上；「QR Code」印給學生。
 5. 把 QR Code 的連結給老師加入書籤，老師就從這個連結進後台。
 
 更新 `Code.gs` 後：Apps Script「部署 → 管理部署作業 → 編輯 → 版本：新版本 → 部署」（網址不變）。
 
-## 老師後台（網站右上角「老師」）
+## 老師後台（網站右上角「老師後台」）
 
 | 分頁 | 內容 |
 |---|---|
@@ -53,5 +53,5 @@ GitHub Pages（這個 repo）              Google 試算表 + Apps Script（班�
 - 本機預覽：`python3 -m http.server 8000`，開 http://localhost:8000
 - 手寫判斷測試：`node tools/judge.test.js`
 - 資料服務測試：`node tools/gas-mock.js`
-- 模擬資料服務：`node tools/gas-mock.js serve`（http://127.0.0.1:8090/，到後台「老師」貼上這個網址）
+- 模擬資料服務：`node tools/gas-mock.js serve`（http://127.0.0.1:8090/，到「老師後台」貼上這個網址）
 - 預先下載預設字的筆順：`python3 tools/fetch_moe.py`

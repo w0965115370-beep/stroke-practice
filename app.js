@@ -225,7 +225,7 @@ const backBtn = (label, hash) => `<button class="back" onclick="location.hash='$
 function showHome() {
   const done = getDone();
   const me = getStudent();
-  let html = `<a class="teacher-link" href="#/teacher">老師</a><section class="hero">
+  let html = `<a class="teacher-link" href="#/teacher">老師後台</a><section class="hero">
       <div><h1>筆順小練習</h1><p>先看、再描、自己寫</p>
         ${rosterError ? `<div class="who">讀不到學生名單，請確認網路連線，或請老師重新產生 QR Code</div>` : ""}
         ${me ? `<div class="who"><span>${esc(me.name)}，你好！</span><span class="pts"></span><button onclick="setStudent(null); location.hash='#/login'">換人</button></div>` : ""}</div>
@@ -249,7 +249,7 @@ function showHome() {
 }
 
 function showLogin() {
-  $app.innerHTML = `<a class="teacher-link" href="#/teacher">老師</a><section class="hero login-hero"><div><h1>你是誰？</h1><p>找到你的座號和名字，點一下</p></div></section>
+  $app.innerHTML = `<a class="teacher-link" href="#/teacher">老師後台</a><section class="hero login-hero"><div><h1>你是誰？</h1><p>找到你的座號和名字，點一下</p></div></section>
     <div class="students">${students.map((s, i) =>
       `<button class="student" style="--spine:${SPINES[i % SPINES.length]}" data-i="${i}"><b>${esc(s.no)}</b><span>${esc(s.name)}</span></button>`).join("")}</div>` + footer();
   $app.querySelectorAll(".student").forEach(b => b.onclick = () => confirmStudent(students[+b.dataset.i]));

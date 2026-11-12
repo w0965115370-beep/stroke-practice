@@ -350,7 +350,7 @@ async function tabQR() {
     <div class="box t-narrow t-noprint"><b>怎麼用</b><ol>
       <li>把 QR Code 印出來或投影，全班共用一張。</li>
       <li>小朋友用 iPad 相機掃，點跳出來的連結，再點自己的名字。</li>
-      <li>老師也用同一個連結打開網站，按右上角「老師」進後台。建議加入書籤。</li></ol>
+      <li>老師也用同一個連結打開網站，按右上角「老師後台」。建議加入書籤。</li></ol>
       <p class="muted t-link">${esc(link)}</p></div>`;
   document.getElementById("copy").onclick = async () => {
     try { await navigator.clipboard.writeText(link); toast("連結已複製"); } catch { toast("無法自動複製，請直接選取下方的連結", true); }
