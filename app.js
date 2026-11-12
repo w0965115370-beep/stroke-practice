@@ -525,13 +525,17 @@ async function loadData({ fresh = false } = {}) {
   try { await applyBoot(await fetchBoot()); }
   catch { rosterError = true; students = []; units = await defaultUnits(); }
 }
+// Start once every script (teacher.js too) has run: a remembered class list makes loadData()
+// finish almost instantly, before later <script> tags have been executed.
+document.addEventListener("DOMContentLoaded", () => {
 takeRosterFromLink();
 loadData()
   .then(() => { window.addEventListener("hashchange", route); route(); })
   .catch(err => {
     // show enough detail to tell a network problem from an old browser
     const ios = (navigator.userAgent.match(/OS (\d+)_(\d+)/) || []).slice(1).join(".");
-    $app.innerHTML = `<p class="note">讀不到字表，請確認網路連線後按「重新載入」。<br>
+    $app.innerHTML = `<p class="note">網站載入失敗，請確認網路連線後按「重新載入」。<br>
       <button class="btn primary" style="margin:16px auto;display:flex" onclick="location.reload()">重新載入</button>
-      <small>${esc(err && err.message || err)}${ios ? `　iOS ${esc(ios)}` : ""}　版本 ${esc((document.querySelector('script[src^="app.js"]') || {}).src.split("v=")[1] || "")}</small></p>`;
+      <small>${esc(err && err.message || err)}${ios ? `　iOS ${esc(ios)}` : ""}　版本 ${esc(((document.querySelector('script[src^="app.js"]') || {}).src || "").split("v=")[1] || "")}</small></p>`;
   });
+});
