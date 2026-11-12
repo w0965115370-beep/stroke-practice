@@ -1,4 +1,6 @@
 // Judge one handwritten stroke against an MOE Track (coords in MOE 2048 box).
+// Array.prototype.at needs iOS 15.4+; school iPads are often older
+const lastOf = a => a[a.length - 1];
 const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
 const len = p => p.slice(1).reduce((s, q, i) => s + dist(p[i], q), 0);
 function densify(p, step = 20) {           // points every `step` units along polyline
@@ -17,7 +19,7 @@ function judgeStroke(user, track, tol = 200) {
   const T = densify(track), U = densify(user);
   const tLen = len(track);
   if (dist(U[0], T[0]) > tol * 1.25) return { ok: false, why: "start" };
-  if (dist(U.at(-1), T.at(-1)) > tol * 1.25) return { ok: false, why: "end" };
+  if (dist(lastOf(U), lastOf(T)) > tol * 1.25) return { ok: false, why: "end" };
   // every part of the real stroke must be traced (blocks start→end shortcuts across bends)
   const covered = T.filter(p => near(p, U) <= tol).length / T.length;
   if (covered < 0.9) return { ok: false, why: "shortcut", covered };

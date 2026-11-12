@@ -244,10 +244,10 @@ function drawWords() {
     setDirty(true); drawWords();
   });
   document.getElementById("addunit").onclick = () => {
-    const last = W.at(-1);
+    const last = lastOf(W);
     W.push({ sem: last ? last.sem : "", name: "", words: [] });
     setDirty(true); drawWords();
-    [...document.querySelectorAll(".t-name")].at(-1).focus();
+    lastOf([...document.querySelectorAll(".t-name")]).focus();
   };
   const imp = document.getElementById("import");
   if (imp) imp.onclick = async () => { T.words = groupUnits(await fetchCSV("words.csv")); setDirty(true); drawWords(); };
@@ -311,7 +311,7 @@ function drawKids() {
   document.getElementById("addkid").onclick = () => {
     K.push({ no: String(Math.max(0, ...K.map(k => Number(k.no) || 0)) + 1), name: "" });
     setDirty(true); drawKids();
-    [...$app.querySelectorAll('.t-kids [data-f="name"]')].at(-1).focus();
+    lastOf([...$app.querySelectorAll('.t-kids [data-f="name"]')]).focus();
   };
   document.getElementById("usepaste").onclick = () => {
     const rows = document.getElementById("paste").value.split("\n").map(l => l.trim().split(/[\s,，]+/)).filter(r => r[0]);
@@ -334,7 +334,7 @@ function studentLink() {
   return new URL("./", location.href).href + "#w=" + (w.startsWith("http") ? encodeURIComponent(w) : w);
 }
 let qrLib = null;
-const loadQR = () => qrLib ||= new Promise((ok, fail) => {
+const loadQR = () => qrLib = qrLib || new Promise((ok, fail) => {
   const s = document.createElement("script");
   s.src = "https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js";
   s.onload = ok; s.onerror = () => { qrLib = null; fail(); };

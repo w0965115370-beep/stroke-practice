@@ -34,7 +34,7 @@ const stampSVG = (text, cls = "stamp") => `<svg class="${cls}" viewBox="0 0 200 
 function zyHTML(zy) {
   const syl = (zy || "").trim().split(/\s+/)[0];
   if (!syl) return "";
-  const light = syl.startsWith("˙"), tone = /[ˊˇˋ]$/.test(syl) ? syl.at(-1) : "";
+  const light = syl.startsWith("˙"), tone = /[ˊˇˋ]$/.test(syl) ? lastOf(syl) : "";
   const sym = [...syl.slice(light ? 1 : 0, tone ? -1 : undefined)];
   return `<span class="zy-col" aria-label="${esc(syl)}">${light ? `<i class="light">˙</i>` : ""}${sym.map((c, i) =>
     `<i>${esc(c)}${i === sym.length - 1 && tone ? `<span class="tone">${tone}</span>` : ""}</i>`).join("")}</span>`;
@@ -47,11 +47,11 @@ function parseCSV(text) {
     const c = text[i];
     if (q) { if (c === '"' && text[i + 1] === '"') { f += '"'; i++; } else if (c === '"') q = false; else f += c; }
     else if (c === '"') q = true;
-    else if (c === ",") { rows.at(-1).push(f); f = ""; }
-    else if (c === "\n") { rows.at(-1).push(f); f = ""; rows.push([]); }
+    else if (c === ",") { lastOf(rows).push(f); f = ""; }
+    else if (c === "\n") { lastOf(rows).push(f); f = ""; rows.push([]); }
     else if (c !== "\r") f += c;
   }
-  rows.at(-1).push(f);
+  lastOf(rows).push(f);
   const head = rows.shift().map(h => h.trim().replace(/^﻿/, ""));
   return rows.filter(r => r.some(x => x.trim())).map(r => Object.fromEntries(head.map((h, i) => [h, (r[i] || "").trim()])));
 }
@@ -68,7 +68,7 @@ function groupUnits(rows) {
     const ch = [...(row["字"] || "")][0];
     if (!ch) continue;
     const sem = row["學期"] || "", name = row["單元"] || "練習";
-    let u = units.at(-1);
+    let u = lastOf(units);
     if (!u || u.sem !== sem || u.name !== name) units.push(u = { sem, name, words: [] });
     if (!u.words.some(w => w.ch === ch)) u.words.push({ ch, zy: row["注音"] || "" });
   }
@@ -110,7 +110,7 @@ const queue = () => { try { return JSON.parse(localStorage.getItem("stroke.queue
 const saveQueue = q => { try { localStorage.setItem("stroke.queue", JSON.stringify(q)); } catch {} };
 let sending = null;
 function sendRecords() { // resolves to the server's reply for the last record sent, or null if offline
-  return sending ||= (async () => {
+  return sending = sending || (async () => {
     let last = null;
     for (let rec; (rec = queue()[0]) && recordsUrl();) {
       try { last = await (await fetch(recordsUrl(), { method: "POST", body: JSON.stringify(rec) })).json(); }
@@ -414,8 +414,8 @@ class Practice {
     const [dx, dy] = this.shift;
     const r = judgeStroke(pts.map(([x, y]) => [x - dx, y - dy]), track, this.tolerance());
     if (r.ok && this.stage === "write") {
-      const mx = (pts[0][0] - track[0][0] + pts.at(-1)[0] - track.at(-1)[0]) / 2;
-      const my = (pts[0][1] - track[0][1] + pts.at(-1)[1] - track.at(-1)[1]) / 2;
+      const mx = (pts[0][0] - track[0][0] + lastOf(pts)[0] - lastOf(track)[0]) / 2;
+      const my = (pts[0][1] - track[0][1] + lastOf(pts)[1] - lastOf(track)[1]) / 2;
       const n = this.shiftN++;
       this.shift = [(dx * n + mx) / (n + 1), (dy * n + my) / (n + 1)];
     }
