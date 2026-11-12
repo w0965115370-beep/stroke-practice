@@ -75,18 +75,6 @@ function groupUnits(rows) {
   return units;
 }
 
-// The class's own word list (set in the teacher backend) if there is one, else the bundled default.
-async function loadUnits() {
-  if (recordsUrl()) {
-    try {
-      const j = await (await fetch(recordsUrl() + "?words=1", { cache: "no-store" })).json();
-      if (j.ok && j.units.length) return j.units;
-    } catch {}
-  }
-  const rows = await fetchCSV("words.csv");
-  if (!rows) throw new Error("字表讀取失敗");
-  return groupUnits(rows);
-}
 // "第三課：秋千" -> ["第三課", "秋千"]
 const splitLesson = name => { const m = name.match(/^(第.+?課)\s*[：:]\s*(.+)$/); return m ? [m[1], m[2]] : ["", name]; };
 
@@ -104,18 +92,9 @@ function takeRosterFromLink() {
 }
 let rosterError = false;
 function getRoster() { try { return JSON.parse(localStorage.getItem("stroke.roster")); } catch { return null; } }
-async function loadStudents() {
-  if (!recordsUrl()) return [];
-  try {
-    const j = await (await fetch(recordsUrl() + "?roster=1", { cache: "no-store" })).json();
-    if (j.ok) return j.students.filter(s => s.name);
-  } catch {}
-  rosterError = true;
-  return [];
-}
 const studentKey = s => `${s.no}-${s.name}`;
 function getStudent() { try { return JSON.parse(localStorage.getItem("stroke.student")); } catch { return null; } }
-function setStudent(s) { try { s ? localStorage.setItem("stroke.student", JSON.stringify(s)) : localStorage.removeItem("stroke.student"); } catch {} }
+function setStudent(s) { lastPoints = null; try { s ? localStorage.setItem("stroke.student", JSON.stringify(s)) : localStorage.removeItem("stroke.student"); } catch {} }
 
 // ---------- practice records & points (Google Apps Script web app) ----------
 function recordsUrl() {
@@ -147,12 +126,13 @@ function recordPractice(rec) {
   saveQueue([...queue(), { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7), time: new Date().toISOString(), no: me.no, name: me.name, ...rec }]);
   return sendRecords();
 }
+let lastPoints = null; // {points, card} of the current student, from boot / last record / points request
 async function fetchPoints() {
   const me = getStudent();
   if (!recordsUrl() || !me) return null;
   try {
     const j = await (await fetch(`${recordsUrl()}?no=${encodeURIComponent(me.no)}&name=${encodeURIComponent(me.name)}`)).json();
-    return j.ok ? j : null;
+    return j.ok ? (lastPoints = j) : null;
   } catch { return null; }
 }
 // 集點卡: `card` circles, the earned ones stamped
@@ -242,10 +222,9 @@ function showHome() {
   });
   $app.innerHTML = html + (units.length ? `</div>` : `<p class="note">字表還沒有字。請老師在 Google Sheet 加入要練習的字。</p>`) + footer();
   chalkWrite($app.querySelector(".hero-char svg"), "好");
-  sendRecords().then(fetchPoints).then(p => {
-    const el = $app.querySelector(".who .pts");
-    if (p && el) el.textContent = `★ ${p.points} 點`;
-  });
+  const showPts = p => { const el = $app.querySelector(".who .pts"); if (p && el) el.textContent = `★ ${p.points} 點`; };
+  showPts(lastPoints);
+  sendRecords().then(r => r && r.ok ? (lastPoints = r) : lastPoints || fetchPoints()).then(showPts);
 }
 
 function showLogin() {
@@ -488,6 +467,7 @@ class Practice {
       const box = ov.querySelector(".pointbox");
       if (!box) return;
       if (!r || !r.ok) { box.textContent = "現在連不上網路，點數會在下次連上網時補上"; return; }
+      lastPoints = r;
       const full = r.added && r.points % r.card === 0;
       box.innerHTML = `<p class="${r.added ? "plus" : ""}">${full ? "集滿一張集點卡！拿給老師看" : r.added ? "集點 +1！" : `今天已經集過「${esc(this.word.ch)}」的點了，換別的字試試看`}</p>` + pointCard(r);
     });
@@ -508,10 +488,41 @@ function route() {
   window.scrollTo(0, 0);
 }
 
-// (re)load the class data; the teacher backend calls this after saving
-async function loadData() {
+// ---------- class data: one request, shown instantly from what this iPad remembers ----------
+async function defaultUnits() {
+  const rows = await fetchCSV("words.csv");
+  if (!rows) throw new Error("字表讀取失敗");
+  return groupUnits(rows);
+}
+const readBoot = () => { try { return JSON.parse(localStorage.getItem("stroke.boot")); } catch { return null; } };
+async function fetchBoot() {
+  const me = getStudent(), q = me ? `&no=${encodeURIComponent(me.no)}&name=${encodeURIComponent(me.name)}` : "";
+  const j = await (await fetch(recordsUrl() + "?boot=1" + q, { cache: "no-store" })).json();
+  if (!j.ok) throw new Error(j.error || "boot");
+  if (j.me) lastPoints = j.me;
+  try { localStorage.setItem("stroke.boot", JSON.stringify({ w: getRoster().w, units: j.units, students: j.students })); } catch {}
+  return j;
+}
+async function applyBoot(b) {
   rosterError = false;
-  [units, students] = await Promise.all([loadUnits(), loadStudents()]);
+  students = b.students.filter(s => s.name);
+  units = b.units.length ? b.units : await defaultUnits(); // class list if the teacher saved one
+}
+// fresh: wait for the server (teacher just saved). Otherwise paint from the remembered copy and refresh behind it.
+async function loadData({ fresh = false } = {}) {
+  if (!recordsUrl()) { students = []; units = await defaultUnits(); return; }
+  const cached = readBoot();
+  if (!fresh && cached && cached.w === getRoster().w) {
+    await applyBoot(cached);
+    fetchBoot().then(async b => {
+      const changed = JSON.stringify([b.units, b.students]) !== JSON.stringify([cached.units, cached.students]);
+      if (changed) { await applyBoot(b); if (!/^#\/(c|teacher)/.test(location.hash) && !document.querySelector(".overlay")) route(); }
+      else if (lastPoints) { const el = $app.querySelector(".who .pts"); if (el) el.textContent = `★ ${lastPoints.points} 點`; }
+    }).catch(() => {});
+    return;
+  }
+  try { await applyBoot(await fetchBoot()); }
+  catch { rosterError = true; students = []; units = await defaultUnits(); }
 }
 takeRosterFromLink();
 loadData()

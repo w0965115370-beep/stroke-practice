@@ -38,7 +38,7 @@ function load({ roster, settings, fetchText } = {}) {
   const ctx = {
     SpreadsheetApp: { getActiveSpreadsheet: () => book },
     LockService: { getScriptLock: () => ({ waitLock() {}, releaseLock() {} }) },
-    CacheService: { getScriptCache: () => ({ get: k => cache.get(k) || null, put: (k, v) => cache.set(k, v) }) },
+    CacheService: { getScriptCache: () => ({ get: k => cache.get(k) || null, put: (k, v) => cache.set(k, v), remove: k => cache.delete(k) }) },
     UrlFetchApp: { fetch: url => resp(url), fetchAll: reqs => reqs.map(r => resp(r.url)) },
     Utilities: { formatDate: (d, tz) => new Intl.DateTimeFormat("sv-SE", { timeZone: tz }).format(d) },
     ContentService: { MimeType: { JSON: "json" }, createTextOutput: s => ({ s, setMimeType() { return this; } }) },
@@ -97,6 +97,11 @@ function selfTest() {
   assert.strictEqual(g.post({ action: "saveSettings", password: "abcd", cls: "一年乙班", card: 10 }).ok, true);
   assert.strictEqual(g.get({ no: "1", name: "小明" }).card, 10);
   assert.deepStrictEqual(g.post({ action: "zhuyin", password: "abcd", chars: "的的" }).readings, { "的": ["˙ㄉㄜ", "ㄉㄧˋ"] }, "textbook reading first");
+  // boot: everything the student site needs in one request, cache cleared on save
+  let b = g.get({ boot: "1", no: "1", name: "小明" });
+  assert.deepStrictEqual([b.ok, b.cls, b.students.length, b.units.length, b.me.points], [true, "一年乙班", 2, 2, 3]);
+  g.post({ action: "saveStudents", password: "abcd", students: [{ no: "1", name: "小明" }, { no: "2", name: "小華" }, { no: "3", name: "小美" }] });
+  assert.strictEqual(g.get({ boot: "1" }).students.length, 3, "saving clears the cached boot data");
   console.log("gas-mock: all passed");
 }
 

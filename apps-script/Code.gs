@@ -18,11 +18,17 @@ const 常用讀音 = { "的": "˙ㄉㄜ", "了": "˙ㄌㄜ", "啊": "˙ㄚ", "�
   "什": "ㄕㄣˊ", "都": "ㄉㄡ", "更": "ㄍㄥˋ", "給": "ㄍㄟˇ", "們": "˙ㄇㄣ", "嗎": "˙ㄇㄚ", "得": "˙ㄉㄜ" };
 
 // ================= web app =================
-// GET  ?roster=1 學生名單 · ?words=1 生字表 · ?stroke=字 筆順 · ?no=&name= 點數
+// GET  ?boot=1[&no=&name=] 開網站時要的全部資料（名單＋生字＋點數，一次拿）
+//      ?roster=1 學生名單 · ?words=1 生字表 · ?stroke=字 筆順 · ?no=&name= 點數
 // POST {…}                    一筆練習紀錄（學生 iPad）
 // POST {action, password, …}  老師後台
 function doGet(e) {
   const p = (e && e.parameter) || {};
+  if (p.boot) {
+    const out = Object.assign({ ok: true }, boot_());
+    if (p.name) out.me = points_(rows_(), norm_(p.no), p.name);
+    return json_(out);
+  }
   if (p.roster) return json_({ ok: true, cls: className_(), students: roster_().map(s => ({ no: s.no, name: s.name })) });
   if (p.words) return json_({ ok: true, units: units_() });
   if (p.stroke) return json_(stroke_(p.stroke));
@@ -50,6 +56,17 @@ function doPost(e) {
     return json_({ ok: false, error: String(err.message || err) });
   }
 }
+
+// roster + words + class name for the student site; cached 10 minutes, cleared whenever the teacher saves
+function boot_() {
+  const cache = CacheService.getScriptCache(), hit = cache.get("boot");
+  if (hit) return JSON.parse(hit);
+  const b = { cls: className_(), card: card_(), students: roster_().map(s => ({ no: s.no, name: s.name })), units: units_() };
+  const text = JSON.stringify(b);
+  if (text.length < 95000) cache.put("boot", text, 600);
+  return b;
+}
+function clearBoot_() { CacheService.getScriptCache().remove("boot"); }
 
 // ================= teacher =================
 const 未設密碼 = "還沒有設定老師密碼";
@@ -79,6 +96,7 @@ function saveWords_(units) {
     });
   });
   writeTable_("生字", ["學期", "單元", "字", "注音"], rows);
+  clearBoot_();
   return { ok: true, count: rows.length };
 }
 
@@ -88,6 +106,7 @@ function saveStudents_(students) {
   const seen = {};
   rows.forEach(r => { const k = r[0] + "|" + r[1]; if (seen[k]) throw new Error(`名單裡有重複的學生：${r[0]} ${r[1]}`); seen[k] = 1; });
   writeTable_("學生", ["座號", "姓名"], rows);
+  clearBoot_();
   return { ok: true, count: rows.length };
 }
 
@@ -96,6 +115,7 @@ function saveSettings_(d) {
   if (!(card >= 5 && card <= 100)) throw new Error("每張點數卡要在 5 到 100 點之間");
   setSetting_("班級名稱", String(d.cls || "").trim().slice(0, 20));
   setSetting_("每張點數卡", card);
+  clearBoot_();
   return { ok: true };
 }
 

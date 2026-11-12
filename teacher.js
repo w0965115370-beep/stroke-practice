@@ -68,7 +68,7 @@ function tConnect(err = "") {
       try { localStorage.removeItem("stroke.roster"); } catch {}
       return tConnect("連不上。請確認部署時「誰可以存取」選了「所有人」，並完成授權。");
     }
-    await loadData();
+    await loadData({ fresh: true });
     showTeacher();
   };
   document.getElementById("connect").onclick = go;
@@ -255,7 +255,7 @@ function drawWords() {
     if (W.some(u => !u.name.trim())) return toast("每一課都要有課名", true);
     const j = await tapi({ action: "saveWords", units: W }).catch(() => ({ ok: false, error: "連不上，請確認網路後再按一次儲存" }));
     if (!j.ok) return toast(j.error, true);
-    setDirty(false); await loadData();
+    setDirty(false); await loadData({ fresh: true });
     toast(`已儲存 ${j.count} 個字，學生重新整理就會看到`);
   };
 }
@@ -323,7 +323,7 @@ function drawKids() {
     const list = K.filter(k => k.name);
     const j = await tapi({ action: "saveStudents", students: list }).catch(() => ({ ok: false, error: "連不上，請確認網路後再按一次儲存" }));
     if (!j.ok) return toast(j.error, true);
-    T.kids = list; setDirty(false); await loadData(); drawKids();
+    T.kids = list; setDirty(false); await loadData({ fresh: true }); drawKids();
     toast(`已儲存 ${j.count} 位學生`);
   };
 }
@@ -380,6 +380,6 @@ function tabSettings() {
     if (!confirm("確定要移除這台裝置的班級連線嗎？")) return;
     try { localStorage.removeItem("stroke.roster"); localStorage.removeItem("stroke.student"); } catch {}
     tpw.set(""); T.words = T.kids = null;
-    await loadData(); location.hash = "";
+    await loadData({ fresh: true }); location.hash = "";
   };
 }
