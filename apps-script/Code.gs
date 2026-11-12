@@ -239,5 +239,12 @@ function writeTable_(name, header, rows) {
   sh.setFrozenRows(1);
 }
 
+// 第一次安裝時在編輯器執行一次，讓 Google 詢問並取得需要的權限
+function 授權() {
+  settings_();
+  UrlFetchApp.fetch("https://www.moedict.tw/uni/%E4%B8%80", { muteHttpExceptions: true });
+  Logger.log("授權完成");
+}
+
 function norm_(no) { return String(no == null ? "" : no).trim().replace(/^0+(?=\d)/, ""); }
 function json_(o) { return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }
