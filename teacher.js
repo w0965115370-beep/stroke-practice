@@ -329,9 +329,10 @@ function drawKids() {
 }
 
 // ---------- QR Code ----------
+// ?openExternalBrowser=1: LINE opens the link in Safari/Chrome instead of its in-app browser
 function studentLink() {
   const w = getRoster().w;
-  return new URL("./", location.href).href + "#w=" + (w.startsWith("http") ? encodeURIComponent(w) : w);
+  return new URL("./", location.href).href + "?openExternalBrowser=1#w=" + (w.startsWith("http") ? encodeURIComponent(w) : w);
 }
 let qrLib = null;
 const loadQR = () => qrLib = qrLib || new Promise((ok, fail) => {
